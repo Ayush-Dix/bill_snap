@@ -1,0 +1,79 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Firebase / Google service account keys and CLI state
+# Ignore service account JSONs and local firebase CLI cache
+firebase-admin*.json
+serviceAccountKey*.json
+*.service-account.json
+.firebase/
+
+# Mobile Google service files (commented out - include only if you want them in repo)
+# android/app/google-services.json
+# ios/Runner/GoogleService-Info.plist
+
+# Environment and secret files
+.env
+.env.*
+secrets.json
+keys/
+
+# Android signing keys
+*.keystore
+key.properties
+
+# Local files
+.gradle/
+local.properties
+
+# IDE workspace files (include workspace only if necessary)
+.vscode/
+.idea/workspace.xml
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/metadata/android/
