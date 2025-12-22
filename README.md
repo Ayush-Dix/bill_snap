@@ -65,37 +65,6 @@ lib/
 2. Download `GoogleService-Info.plist`
 3. Place it in `ios/Runner/GoogleService-Info.plist`
 
-### 4. Firestore Rules
-
-Deploy these security rules to Firestore:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // Users collection
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // Bills collection
-    match /bills/{billId} {
-      // Allow list queries where user is in participants array
-      allow list: if request.auth != null;
-      // Allow single document read if user is a participant
-      allow get: if request.auth != null && 
-        request.auth.uid in resource.data.participants;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && 
-        request.auth.uid in resource.data.participants;
-      allow delete: if request.auth != null && 
-        request.auth.uid == resource.data.hostId;
-    }
-  }
-}
-```
-
 ## Getting Started
 
 ### Prerequisites
