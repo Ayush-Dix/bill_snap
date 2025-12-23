@@ -53,7 +53,7 @@ class AppColors {
   static const Color darkSuccessText = Color(0xFF4ADE80); // green.shade400
   static const Color darkErrorBg = Color(0xFF7F1D1D); // red.shade900
   static const Color darkErrorText = Color(0xFFF87171); // red.shade400
-  
+
   // Participant Avatar Colors
   static const List<Color> avatarColors = [
     Color(0xFF6366F1), // Indigo
