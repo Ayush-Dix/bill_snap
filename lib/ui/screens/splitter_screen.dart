@@ -3,10 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../cubit/cubit.dart';
 import '../../models/models.dart';
 import '../widgets/quantity_split_dialog.dart';
-import '../widgets/participant_avatar.dart';
-import '../widgets/bill_item_card.dart';
-import '../widgets/user_summary_card.dart';
 import '../widgets/edit_dialogs.dart';
+import 'splitter/participants_section.dart';
+import 'splitter/items_section.dart';
+import 'splitter/summary_section.dart';
 
 /// Main splitter screen for managing bill splits
 class SplitterScreen extends StatefulWidget {
@@ -305,115 +305,18 @@ class _SplitterScreenState extends State<SplitterScreen> {
     final isHost = bill.isHost(currentUserId);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          bill.title ?? 'Bill Split',
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          if (isHost)
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                switch (value) {
-                  case 'edit_title':
-                    _showEditBillTitleDialog(context, bill);
-                    break;
-                  case 'add_item':
-                    _showAddItemDialog(context);
-                    break;
-                  case 'close':
-                    context.read<BillCubit>().closeBill(widget.billId);
-                    break;
-                  case 'reopen':
-                    context.read<BillCubit>().reopenBill(widget.billId);
-                    break;
-                  case 'delete':
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Delete Bill?'),
-                        content: const Text('This action cannot be undone.'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              context.read<BillCubit>().deleteBill(
-                                widget.billId,
-                              );
-                              Navigator.pop(ctx);
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.red,
-                            ),
-                            child: const Text('Delete'),
-                          ),
-                        ],
-                      ),
-                    );
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'edit_title',
-                  child: ListTile(
-                    leading: Icon(Icons.edit_outlined),
-                    title: Text('Edit Bill Name'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'add_item',
-                  child: ListTile(
-                    leading: Icon(Icons.add_circle_outline),
-                    title: Text('Add Item'),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-                const PopupMenuDivider(),
-                if (bill.status == BillStatus.active)
-                  const PopupMenuItem(
-                    value: 'close',
-                    child: ListTile(
-                      leading: Icon(Icons.check_circle_outline),
-                      title: Text('Close Bill'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  )
-                else
-                  const PopupMenuItem(
-                    value: 'reopen',
-                    child: ListTile(
-                      leading: Icon(Icons.refresh),
-                      title: Text('Reopen Bill'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: ListTile(
-                    leading: const Icon(Icons.delete, color: Colors.red),
-                    title: Text(
-                      'Delete',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.red),
-                    ),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
+      appBar: _buildAppBar(context, bill, isHost),
       body: Column(
         children: [
-          // Participants row
-          _buildParticipantsRow(context, bill, participants),
+          // Participants section
+          ParticipantsSection(
+            bill: bill,
+            participants: participants,
+            currentUserId: currentUserId,
+            onAddParticipant: () => _showAddParticipantDialog(context),
+            onRemoveParticipant: (userId, user) =>
+                _showRemoveParticipantDialog(context, user, userId),
+          ),
 
           // Main content
           Expanded(
@@ -423,75 +326,59 @@ class _SplitterScreenState extends State<SplitterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Unassigned Items Section
-                  if (bill.unassignedItems.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      'Unassigned Items',
-                      bill.unassignedItems.length,
-                      Colors.orange,
+                  ItemsSection(
+                    title: 'Unassigned Items',
+                    items: bill.unassignedItems,
+                    participants: participants,
+                    participantIds: bill.participants,
+                    isHost: isHost,
+                    sectionColor: Colors.orange,
+                    onQuantitySplit: (item) => _showQuantitySplitDialog(
+                      context,
+                      item,
+                      bill,
+                      participants,
                     ),
-                    const SizedBox(height: 12),
-                    ...bill.unassignedItems.map(
-                      (item) => BillItemCard(
-                        item: item,
-                        participants: participants,
-                        isHost: isHost,
-                        onTap: () => _showQuantitySplitDialog(
-                          context,
-                          item,
-                          bill,
-                          participants,
-                        ),
-                        onLongPress: () => _showItemActionsSheet(
-                          context,
-                          item,
-                          bill,
-                          participants,
-                          isHost,
-                        ),
-                        onAssignToUser: (userId) =>
-                            _assignToUser(item.id, userId),
-                        participantIds: bill.participants,
-                      ),
+                    onItemActions: (item) => _showItemActionsSheet(
+                      context,
+                      item,
+                      bill,
+                      participants,
+                      isHost,
                     ),
-                    const SizedBox(height: 24),
-                  ],
+                    onAssignToUser: _assignToUser,
+                  ),
 
                   // Assigned Items Section
-                  if (bill.assignedItems.isNotEmpty) ...[
-                    _buildSectionHeader(
-                      'Assigned Items',
-                      bill.assignedItems.length,
-                      Colors.green,
+                  ItemsSection(
+                    title: 'Assigned Items',
+                    items: bill.assignedItems,
+                    participants: participants,
+                    participantIds: bill.participants,
+                    isHost: isHost,
+                    sectionColor: Colors.green,
+                    onQuantitySplit: (item) => _showQuantitySplitDialog(
+                      context,
+                      item,
+                      bill,
+                      participants,
                     ),
-                    const SizedBox(height: 12),
-                    ...bill.assignedItems.map(
-                      (item) => BillItemCard(
-                        item: item,
-                        participants: participants,
-                        isHost: isHost,
-                        onTap: () => _showQuantitySplitDialog(
-                          context,
-                          item,
-                          bill,
-                          participants,
-                        ),
-                        onLongPress: () => _showItemActionsSheet(
-                          context,
-                          item,
-                          bill,
-                          participants,
-                          isHost,
-                        ),
-                        onUnassign: () => _unassignItem(item.id),
-                        participantIds: bill.participants,
-                      ),
+                    onItemActions: (item) => _showItemActionsSheet(
+                      context,
+                      item,
+                      bill,
+                      participants,
+                      isHost,
                     ),
-                  ],
-
-                  const SizedBox(height: 24),
+                    onUnassign: _unassignItem,
+                  ),
 
                   // Summary Section
-                  _buildSummarySection(bill, participants, currentUserId),
+                  SplitterSummarySection(
+                    bill: bill,
+                    participants: participants,
+                    currentUserId: currentUserId,
+                  ),
                 ],
               ),
             ),
@@ -501,235 +388,114 @@ class _SplitterScreenState extends State<SplitterScreen> {
     );
   }
 
-  Widget _buildParticipantsRow(
+  PreferredSizeWidget _buildAppBar(
     BuildContext context,
     Bill bill,
-    Map<String, AppUser> participants,
+    bool isHost,
   ) {
-    final theme = Theme.of(context);
-    final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-        border: Border(
-          bottom: BorderSide(
-            color: theme.brightness == Brightness.light
-                ? const Color(0xFF1C1C1E).withOpacity(0.1)
-                : const Color(0xFF333333),
-            width: 1,
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Text('Participants', style: theme.textTheme.labelSmall),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+    return AppBar(
+      title: Text(bill.title ?? 'Bill Split', overflow: TextOverflow.ellipsis),
+      actions: [
+        if (isHost)
+          PopupMenuButton<String>(
+            onSelected: (value) => _handleMenuAction(context, value, bill),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit_title',
+                child: ListTile(
+                  leading: Icon(Icons.edit_outlined),
+                  title: Text('Edit Bill Name'),
+                  contentPadding: EdgeInsets.zero,
                 ),
-                child: Text(
-                  '${bill.participants.length}',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontSize: 12,
-                    color: accentColor,
+              ),
+              const PopupMenuItem(
+                value: 'add_item',
+                child: ListTile(
+                  leading: Icon(Icons.add_circle_outline),
+                  title: Text('Add Item'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuDivider(),
+              if (bill.status == BillStatus.active)
+                const PopupMenuItem(
+                  value: 'close',
+                  child: ListTile(
+                    leading: Icon(Icons.check_circle_outline),
+                    title: Text('Close Bill'),
+                    contentPadding: EdgeInsets.zero,
                   ),
+                )
+              else
+                const PopupMenuItem(
+                  value: 'reopen',
+                  child: ListTile(
+                    leading: Icon(Icons.refresh),
+                    title: Text('Reopen Bill'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              PopupMenuItem(
+                value: 'delete',
+                child: ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: Text(
+                    'Delete',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyLarge?.copyWith(color: Colors.red),
+                  ),
+                  contentPadding: EdgeInsets.zero,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 80,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount:
-                  bill.participants.length +
-                  (bill.isHost(context.read<AuthCubit>().currentUserId ?? '')
-                      ? 1
-                      : 0),
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                // Add person button at the end for host
-                if (index == bill.participants.length) {
-                  return SizedBox(
-                    width: 60,
-                    child: InkWell(
-                      onTap: () => _showAddParticipantDialog(context),
-                      borderRadius: BorderRadius.circular(30),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: accentColor, width: 2),
-                            ),
-                            child: Icon(
-                              Icons.add,
-                              color: accentColor,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Add',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontSize: 10,
-                              color: accentColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }
+      ],
+    );
+  }
 
-                final userId = bill.participants[index];
-                final user = participants[userId];
-                final isParticipantHost = userId == bill.hostId;
-                final userTotal = bill.getTotalForUser(userId);
-                final currentUserIsHost = bill.isHost(
-                  context.read<AuthCubit>().currentUserId ?? '',
-                );
-                final canRemove = currentUserIsHost && !isParticipantHost;
+  void _handleMenuAction(BuildContext context, String action, Bill bill) {
+    switch (action) {
+      case 'edit_title':
+        _showEditBillTitleDialog(context, bill);
+        break;
+      case 'add_item':
+        _showAddItemDialog(context);
+        break;
+      case 'close':
+        context.read<BillCubit>().closeBill(widget.billId);
+        break;
+      case 'reopen':
+        context.read<BillCubit>().reopenBill(widget.billId);
+        break;
+      case 'delete':
+        _showDeleteBillDialog(context);
+        break;
+    }
+  }
 
-                return GestureDetector(
-                  onLongPress: canRemove
-                      ? () =>
-                            _showRemoveParticipantDialog(context, user, userId)
-                      : null,
-                  child: ParticipantAvatar(
-                    user: user,
-                    userId: userId,
-                    isHost: isParticipantHost,
-                    amount: userTotal,
-                  ),
-                );
-              },
-            ),
+  void _showDeleteBillDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Bill?'),
+        content: const Text('This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<BillCubit>().deleteBill(widget.billId);
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, int count, Color color) {
-    return Builder(
-      builder: (context) {
-        final theme = Theme.of(context);
-        return Row(
-          children: [
-            Container(
-              width: 4,
-              height: 20,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(title, style: theme.textTheme.titleMedium),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontSize: 12,
-                  color: color,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildSummarySection(
-    Bill bill,
-    Map<String, AppUser> participants,
-    String currentUserId,
-  ) {
-    return Builder(
-      builder: (context) {
-        final theme = Theme.of(context);
-        final accentColor = theme.brightness == Brightness.light
-            ? const Color(0xFFFF6B35)
-            : const Color(0xFFFF8A5B);
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSectionHeader(
-              'Summary',
-              bill.participants.length,
-              accentColor,
-            ),
-            const SizedBox(height: 12),
-
-            // Bill total
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Bill Total', style: theme.textTheme.titleMedium),
-                    Text(
-                      '₹${bill.totalAmount.toStringAsFixed(2)}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        color: accentColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Individual summaries
-            ...bill.participants.map((userId) {
-              final user = participants[userId];
-              final userTotal = bill.getTotalForUser(userId);
-              final isCurrentUser = userId == currentUserId;
-
-              return UserSummaryCard(
-                user: user,
-                userId: userId,
-                amount: userTotal,
-                items: bill.getItemsForUser(userId),
-                isCurrentUser: isCurrentUser,
-                isHost: userId == bill.hostId,
-              );
-            }),
-          ],
-        );
-      },
     );
   }
 }

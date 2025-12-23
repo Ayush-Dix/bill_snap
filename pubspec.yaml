@@ -25,6 +25,9 @@ dependencies:
   # ML Kit OCR
   google_mlkit_text_recognition: ^0.14.0
   
+  # HTTP client for API calls
+  http: ^1.2.0
+  
   # Image Picker & Camera
   image_picker: ^1.1.2
   image_cropper: ^8.0.2

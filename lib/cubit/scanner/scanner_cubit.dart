@@ -236,7 +236,7 @@ class ScannerCubit extends Cubit<ScannerState> {
 
   @override
   Future<void> close() {
-    _scannerService.dispose();
+    // No cleanup needed for HTTP-based service
     return super.close();
   }
 }

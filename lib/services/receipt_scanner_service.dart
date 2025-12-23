@@ -1,31 +1,110 @@
 import 'dart:io';
-import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'dart:convert';
+import 'dart:async';
+import 'package:http/http.dart' as http;
 import '../models/bill_item.dart';
 
-/// Service for scanning receipts and extracting items using ML Kit OCR
+/// Service for scanning receipts using Asprise Receipt OCR API
 class ReceiptScannerService {
-  final TextRecognizer _textRecognizer;
+  // Asprise API configuration
+  static const String _apiEndpoint = 'https://ocr.asprise.com/api/v1/receipt';
+  static const String _apiKey = 'TEST';
+  static const String _recognizer = 'auto';
 
-  ReceiptScannerService()
-    : _textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+  // Timeout configuration
+  static const Duration _requestTimeout = Duration(seconds: 30);
 
-  /// Scan an image file and extract bill items
+  /// Scan an image file and extract bill items using Asprise OCR API
   Future<ScanResult> scanReceipt(File imageFile) async {
     try {
-      final inputImage = InputImage.fromFile(imageFile);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
+      print('\n===== ASPRISE OCR REQUEST =====');
+      print('File: ${imageFile.path}');
+      print('File size: ${await imageFile.length()} bytes');
 
-      print('\n===== RAW OCR OUTPUT =====');
-      print(recognizedText.text);
-      print('===== END RAW OUTPUT =====\n');
+      // Create multipart request
+      final request = http.MultipartRequest('POST', Uri.parse(_apiEndpoint));
 
-      // Parse the recognized text into bill items
-      final items = _parseReceiptText(recognizedText.text);
+      // Add required fields
+      request.fields['api_key'] = _apiKey;
+      request.fields['recognizer'] = _recognizer;
+      request.fields['ref_no'] =
+          'billsnap_${DateTime.now().millisecondsSinceEpoch}';
 
+      // Add image file
+      final fileStream = http.ByteStream(imageFile.openRead());
+      final fileLength = await imageFile.length();
+      final multipartFile = http.MultipartFile(
+        'file',
+        fileStream,
+        fileLength,
+        filename: imageFile.path.split('/').last,
+      );
+      request.files.add(multipartFile);
+
+      print('Sending request to Asprise API...');
+
+      // Send request with timeout
+      final streamedResponse = await request.send().timeout(_requestTimeout);
+      final response = await http.Response.fromStream(streamedResponse);
+
+      print('Response status: ${response.statusCode}');
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'API request failed with status ${response.statusCode}: ${response.body}',
+        );
+      }
+
+      // Parse JSON response
+      final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
+
+      print('===== ASPRISE API RESPONSE =====');
+      print(json.encode(jsonResponse));
+      print('================================\n');
+
+      // Check if OCR was successful
+      if (jsonResponse['success'] != true) {
+        throw Exception('OCR processing failed');
+      }
+
+      // Extract receipts array
+      final receipts = jsonResponse['receipts'] as List<dynamic>?;
+      if (receipts == null || receipts.isEmpty) {
+        return ScanResult(
+          success: true,
+          items: [],
+          rawText: 'No receipts detected in image',
+        );
+      }
+
+      // Parse items from all detected receipts
+      final items = _parseReceipts(receipts);
+
+      // Generate raw text summary
+      final rawText = _generateRawTextSummary(receipts);
+
+      return ScanResult(success: true, items: items, rawText: rawText);
+    } on http.ClientException catch (e) {
       return ScanResult(
-        success: true,
-        items: items,
-        rawText: recognizedText.text,
+        success: false,
+        items: [],
+        rawText: '',
+        error:
+            'Network error: Unable to connect to OCR service. Please check your internet connection.',
+      );
+    } on FormatException catch (e) {
+      return ScanResult(
+        success: false,
+        items: [],
+        rawText: '',
+        error: 'Failed to parse OCR response: $e',
+      );
+    } on TimeoutException catch (e) {
+      return ScanResult(
+        success: false,
+        items: [],
+        rawText: '',
+        error: 'OCR request timed out. Please try again.',
       );
     } catch (e) {
       return ScanResult(
@@ -37,105 +116,120 @@ class ReceiptScannerService {
     }
   }
 
-  /// Parse receipt text into bill items
-  /// This uses heuristics to identify item names and prices
-  List<BillItem> _parseReceiptText(String text) {
-    final List<BillItem> items = [];
-    final lines = text.split('\n');
+  /// Parse receipts from API response and extract bill items
+  List<BillItem> _parseReceipts(List<dynamic> receipts) {
+    final List<BillItem> allItems = [];
 
-    // Regular expression patterns for price detection
-    // Very flexible: matches integers and decimals in various formats
-    final pricePattern = RegExp(
-      r'[\$€£¥₹]?\s*(\d{1,4}(?:[.,]\d{1,2})?)(?:\s*[\$€£¥₹])?',
-      caseSensitive: false,
-    );
+    print('\n===== PARSING RECEIPTS =====');
+    print('Total receipts: ${receipts.length}');
 
-    // Pattern to identify lines that are likely totals/subtotals (to exclude)
-    final excludePattern = RegExp(
-      r'(^total|^subtotal|^sub-total|^tax|^vat|^tip|^service|^change|^cash|^card|visa|mastercard|payment|balance|^due|tendered|receipt\s*#|thank\s*you|www|http|tel:|phone:|\d{2}[/:]\d{2}[/:]\d{2,4}|barcode|upc)',
-      caseSensitive: false,
-    );
+    for (var i = 0; i < receipts.length; i++) {
+      final receipt = receipts[i] as Map<String, dynamic>;
+      print('\nReceipt #${i + 1}:');
+      print('Merchant: ${receipt['merchant_name']}');
+      print('Date: ${receipt['date']}');
+      print('Total: ${receipt['total']}');
 
-    print('===== OCR PARSING DEBUG =====');
-    print('Total lines: ${lines.length}');
+      // Extract items from this receipt
+      final items = receipt['items'] as List<dynamic>?;
+      if (items != null && items.isNotEmpty) {
+        print('Items found: ${items.length}');
 
-    for (final line in lines) {
-      final trimmedLine = line.trim();
+        for (var itemJson in items) {
+          final item = itemJson as Map<String, dynamic>;
 
-      // Skip empty lines
-      if (trimmedLine.isEmpty) continue;
+          // Extract item details
+          final description = item['description'] as String?;
+          final amount = _parseAmount(item['amount']);
+          final qty = _parseInt(item['qty']) ?? 1;
 
-      print('Processing: "$trimmedLine"');
-
-      // Skip lines that look like totals, headers, or metadata
-      if (excludePattern.hasMatch(trimmedLine)) {
-        print('  → Excluded (metadata/total)');
-        continue;
-      }
-
-      // Try to extract price from the line
-      final priceMatches = pricePattern.allMatches(trimmedLine).toList();
-
-      if (priceMatches.isNotEmpty) {
-        // Use the last price match on the line (usually the item price)
-        final priceMatch = priceMatches.last;
-
-        // Extract the price value
-        String priceStr = priceMatch.group(1) ?? '0';
-        // Normalize comma to decimal point
-        priceStr = priceStr.replaceAll(',', '.');
-        final price = double.tryParse(priceStr);
-
-        print('  → Found price: $price');
-
-        if (price != null && price > 0.10 && price < 10000) {
-          // Extract item name (everything before the last price)
-          String itemName = trimmedLine.substring(0, priceMatch.start).trim();
-
-          // Clean up the item name
-          itemName = _cleanItemName(itemName);
-
-          print('  → Cleaned name: "$itemName"');
-
-          // Only add if we have a valid name (at least 2 characters)
-          // Or if no name, use a generic placeholder
-          if (itemName.length >= 2) {
-            items.add(BillItem.create(name: itemName, price: price));
-            print('  → ADDED ✓');
-          } else if (itemName.isEmpty) {
-            // Add with generic name so user can edit
-            items.add(
-              BillItem.create(name: 'Item ${items.length + 1}', price: price),
+          if (description != null &&
+              description.isNotEmpty &&
+              amount != null &&
+              amount > 0) {
+            // Create bill item
+            final billItem = BillItem.create(
+              name: _cleanItemName(description),
+              price: amount,
             );
-            print('  → ADDED with generic name ✓');
+            allItems.add(billItem);
+
+            print(
+              '  ✓ ${billItem.name} - ₹${billItem.price.toStringAsFixed(2)}',
+            );
           } else {
-            print('  → Name too short');
+            print('  ✗ Skipped invalid item: $item');
           }
-        } else {
-          print('  → Price out of range');
         }
       } else {
-        print('  → No price found');
+        print('No items found in this receipt');
       }
     }
 
-    print('Total items extracted: ${items.length}');
-    print('=============================');
+    print('\nTotal items extracted: ${allItems.length}');
+    print('============================\n');
 
-    return items;
+    return allItems;
   }
 
-  /// Clean up extracted item names
+  /// Generate a human-readable summary from receipts
+  String _generateRawTextSummary(List<dynamic> receipts) {
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < receipts.length; i++) {
+      final receipt = receipts[i] as Map<String, dynamic>;
+
+      if (i > 0) buffer.writeln('\n---\n');
+
+      buffer.writeln('RECEIPT ${i + 1}');
+
+      if (receipt['merchant_name'] != null) {
+        buffer.writeln('Merchant: ${receipt['merchant_name']}');
+      }
+      if (receipt['merchant_address'] != null) {
+        buffer.writeln('Address: ${receipt['merchant_address']}');
+      }
+      if (receipt['date'] != null) {
+        buffer.writeln('Date: ${receipt['date']}');
+      }
+      if (receipt['time'] != null) {
+        buffer.writeln('Time: ${receipt['time']}');
+      }
+
+      buffer.writeln();
+
+      final items = receipt['items'] as List<dynamic>?;
+      if (items != null && items.isNotEmpty) {
+        buffer.writeln('ITEMS:');
+        for (var item in items) {
+          final itemMap = item as Map<String, dynamic>;
+          final desc = itemMap['description'] ?? 'Unknown';
+          final amount = itemMap['amount'] ?? 0;
+          final qty = itemMap['qty'] ?? 1;
+          buffer.writeln('  ${qty}x $desc - ₹${amount}');
+        }
+      }
+
+      buffer.writeln();
+
+      if (receipt['subtotal'] != null) {
+        buffer.writeln('Subtotal: ₹${receipt['subtotal']}');
+      }
+      if (receipt['tax'] != null) {
+        buffer.writeln('Tax: ₹${receipt['tax']}');
+      }
+      if (receipt['total'] != null) {
+        buffer.writeln('Total: ₹${receipt['total']}');
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  /// Clean up item name
   String _cleanItemName(String name) {
-    // Remove quantity prefixes (e.g., "2x", "3 x", "2 @")
-    name = name.replaceAll(RegExp(r'^\d+\s*[x@]\s*', caseSensitive: false), '');
-
-    // Remove leading/trailing special characters
-    name = name.replaceAll(RegExp(r'^[\s\*\-\#\.\,]+'), '');
-    name = name.replaceAll(RegExp(r'[\s\*\-\#\.\,]+$'), '');
-
-    // Remove multiple spaces
-    name = name.replaceAll(RegExp(r'\s+'), ' ');
+    // Remove leading/trailing whitespace
+    name = name.trim();
 
     // Capitalize first letter of each word
     name = name
@@ -146,12 +240,43 @@ class ReceiptScannerService {
         })
         .join(' ');
 
-    return name.trim();
+    return name;
   }
 
-  /// Dispose the text recognizer when done
-  void dispose() {
-    _textRecognizer.close();
+  /// Safely parse amount from dynamic value
+  double? _parseAmount(dynamic value) {
+    if (value == null) return null;
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    if (value is String) {
+      // Remove currency symbols and whitespace
+      final cleaned = value.replaceAll(RegExp(r'[₹\$€£¥,\s]'), '');
+      return double.tryParse(cleaned);
+    }
+
+    return null;
+  }
+
+  /// Safely parse integer from dynamic value
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+
+    if (value is int) {
+      return value;
+    }
+
+    if (value is double) {
+      return value.round();
+    }
+
+    if (value is String) {
+      return int.tryParse(value);
+    }
+
+    return null;
   }
 }
 
