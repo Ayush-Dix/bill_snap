@@ -4,6 +4,7 @@ import '../../cubit/cubit.dart';
 import '../../models/models.dart';
 import '../widgets/quantity_split_dialog.dart';
 import '../widgets/edit_dialogs.dart';
+import '../theme/app_theme.dart';
 import 'splitter/participants_section.dart';
 import 'splitter/items_section.dart';
 import 'splitter/summary_section.dart';
@@ -247,8 +248,8 @@ class _SplitterScreenState extends State<SplitterScreen> {
                     backgroundColor: Colors.transparent,
                     valueColor: AlwaysStoppedAnimation<Color>(
                       Theme.of(context).brightness == Brightness.light
-                          ? const Color(0xFFFF6B35)
-                          : const Color(0xFFFF8A5B),
+                          ? AppColors.lightAccent
+                          : AppColors.darkAccent,
                     ),
                   ),
                 ),
@@ -272,7 +273,7 @@ class _SplitterScreenState extends State<SplitterScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const Icon(Icons.error_outline, size: 64, color: AppColors.error),
                   const SizedBox(height: 16),
                   Text(state.message),
                   const SizedBox(height: 16),
@@ -332,7 +333,7 @@ class _SplitterScreenState extends State<SplitterScreen> {
                     participants: participants,
                     participantIds: bill.participants,
                     isHost: isHost,
-                    sectionColor: Colors.orange,
+                    sectionColor: AppColors.warning,
                     onQuantitySplit: (item) => _showQuantitySplitDialog(
                       context,
                       item,
@@ -356,7 +357,7 @@ class _SplitterScreenState extends State<SplitterScreen> {
                     participants: participants,
                     participantIds: bill.participants,
                     isHost: isHost,
-                    sectionColor: Colors.green,
+                    sectionColor: AppColors.success,
                     onQuantitySplit: (item) => _showQuantitySplitDialog(
                       context,
                       item,
@@ -491,7 +492,7 @@ class _SplitterScreenState extends State<SplitterScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('Delete'),
           ),
         ],

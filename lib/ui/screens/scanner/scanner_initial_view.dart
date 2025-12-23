@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../cubit/cubit.dart';
+import '../../theme/app_theme.dart';
 
 /// Initial state view with scan/manual options and tips
 class ScannerInitialView extends StatelessWidget {
@@ -26,7 +27,7 @@ class ScannerInitialView extends StatelessWidget {
             Icon(
               Icons.receipt_long,
               size: 80,
-              color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+              color: isDark ? AppColors.darkGray600 : AppColors.lightGray300,
             ),
             const SizedBox(height: 24),
             Text(

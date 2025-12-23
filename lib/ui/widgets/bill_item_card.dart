@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../theme/app_theme.dart';
 
 /// Card widget for displaying a bill item
 class BillItemCard extends StatelessWidget {
@@ -28,8 +29,8 @@ class BillItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -112,11 +113,11 @@ class BillItemCard extends StatelessWidget {
   Widget _buildAssignmentInfo(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
     final bgColor = theme.brightness == Brightness.light
-        ? const Color(0xFFF4F2EE)
-        : const Color(0xFF2A2A2A);
+        ? AppColors.lightCanvas
+        : AppColors.darkGray200;
 
     return Wrap(
       spacing: 8,
@@ -141,8 +142,8 @@ class BillItemCard extends StatelessWidget {
                 backgroundColor: _getAvatarColor(userId.hashCode),
                 child: Text(
                   _getInitials(user?.displayName ?? 'U'),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.lightSurface,
                     fontSize: 8,
                     fontWeight: FontWeight.bold,
                   ),
@@ -178,8 +179,8 @@ class BillItemCard extends StatelessWidget {
   Widget _buildQuickAssignButtons(BuildContext context) {
     final theme = Theme.of(context);
     final borderColor = theme.brightness == Brightness.light
-        ? const Color(0xFF1C1C1E).withOpacity(0.2)
-        : const Color(0xFF333333);
+        ? AppColors.lightInk.withOpacity(0.2)
+        : AppColors.darkBorder;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -214,8 +215,8 @@ class BillItemCard extends StatelessWidget {
                       backgroundColor: _getAvatarColor(userId.hashCode),
                       child: Text(
                         _getInitials(user?.displayName ?? 'U'),
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: AppColors.lightSurface,
                           fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
@@ -245,14 +246,6 @@ class BillItemCard extends StatelessWidget {
   }
 
   Color _getAvatarColor(int hash) {
-    final colors = [
-      const Color(0xFF6366F1),
-      const Color(0xFF10B981),
-      const Color(0xFFF59E0B),
-      const Color(0xFFEF4444),
-      const Color(0xFF8B5CF6),
-      const Color(0xFF06B6D4),
-    ];
-    return colors[hash.abs() % colors.length];
+    return AppColors.avatarColors[hash.abs() % AppColors.avatarColors.length];
   }
 }

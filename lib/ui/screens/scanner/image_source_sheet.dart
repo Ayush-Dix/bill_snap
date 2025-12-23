@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../cubit/cubit.dart';
+import '../../theme/app_theme.dart';
 
 /// Bottom sheet for selecting image source (Camera, Gallery, Manual)
 class ImageSourceSheet extends StatelessWidget {
@@ -22,7 +23,7 @@ class ImageSourceSheet extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+                color: isDark ? AppColors.darkGray600 : AppColors.lightGray300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -36,10 +37,10 @@ class ImageSourceSheet extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                  color: AppColors.info.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.camera_alt, color: Color(0xFF6366F1)),
+                child: const Icon(Icons.camera_alt, color: AppColors.info),
               ),
               title: const Text('Camera'),
               subtitle: const Text('Take a photo of your receipt'),
@@ -53,12 +54,12 @@ class ImageSourceSheet extends StatelessWidget {
               leading: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.photo_library,
-                  color: Color(0xFF10B981),
+                  color: AppColors.success,
                 ),
               ),
               title: const Text('Gallery'),

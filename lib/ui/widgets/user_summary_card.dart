@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/models.dart';
+import '../theme/app_theme.dart';
 
 /// Card widget for displaying a user's bill summary
 class UserSummaryCard extends StatelessWidget {
@@ -25,8 +26,8 @@ class UserSummaryCard extends StatelessWidget {
     final displayName = user?.displayName ?? 'User';
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -47,8 +48,8 @@ class UserSummaryCard extends StatelessWidget {
                 backgroundColor: _getAvatarColor(userId.hashCode),
                 child: Text(
                   _getInitials(displayName),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: AppColors.lightSurface,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
@@ -61,17 +62,15 @@ class UserSummaryCard extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: theme.brightness == Brightness.light
-                          ? const Color(0xFFD4E157)
-                          : const Color(0xFFD4E157),
+                      color: AppColors.lightHighlight,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.star,
                       size: 8,
                       color: theme.brightness == Brightness.light
-                          ? const Color(0xFF1C1C1E)
-                          : const Color(0xFF121212),
+                          ? AppColors.lightInk
+                          : AppColors.darkCanvas,
                     ),
                   ),
                 ),

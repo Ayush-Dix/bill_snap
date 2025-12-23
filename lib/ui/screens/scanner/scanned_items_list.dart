@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/bill_item.dart';
 import '../../../cubit/cubit.dart';
+import '../../theme/app_theme.dart';
 
 /// List view showing scanned/manual items with edit/delete actions
 class ScannedItemsList extends StatelessWidget {
@@ -49,7 +50,7 @@ class ScannedItemsList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
@@ -87,8 +88,8 @@ class ScannedItemsList extends StatelessWidget {
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: theme.brightness == Brightness.light
-                      ? const Color(0xFFFF6B35)
-                      : const Color(0xFFFF8A5B),
+                      ? AppColors.lightAccent
+                      : AppColors.darkAccent,
                 ),
               ),
             ],
@@ -113,7 +114,7 @@ class ScannedItemsList extends StatelessWidget {
             Icon(
               isManualEntry ? Icons.add_shopping_cart : Icons.receipt_long,
               size: 64,
-              color: isDark ? Colors.grey.shade600 : Colors.grey.shade300,
+              color: isDark ? AppColors.darkGray600 : AppColors.lightGray300,
             ),
             const SizedBox(height: 16),
             Text(
@@ -127,7 +128,7 @@ class ScannedItemsList extends StatelessWidget {
                   : 'The OCR may not have detected prices clearly',
               style: theme.textTheme.bodyMedium?.copyWith(
                 fontSize: 12,
-                color: Colors.grey,
+                color: isDark ? AppColors.darkGray600 : AppColors.lightGray600,
               ),
               textAlign: TextAlign.center,
             ),
@@ -166,10 +167,10 @@ class ScannedItemsList extends StatelessWidget {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.only(right: 20),
             decoration: BoxDecoration(
-              color: Colors.red.shade100,
+              color: AppColors.error.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.delete, color: Colors.red.shade700),
+            child: Icon(Icons.delete, color: AppColors.error),
           ),
           child: Card(
             margin: const EdgeInsets.only(bottom: 8),
@@ -183,8 +184,8 @@ class ScannedItemsList extends StatelessWidget {
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontSize: 16,
                   color: theme.brightness == Brightness.light
-                      ? const Color(0xFFFF6B35)
-                      : const Color(0xFFFF8A5B),
+                      ? AppColors.lightAccent
+                      : AppColors.darkAccent,
                 ),
               ),
               onTap: () => onEditItem(item),

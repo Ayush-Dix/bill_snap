@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/models.dart';
 import '../../widgets/participant_avatar.dart';
+import '../../theme/app_theme.dart';
 
 /// Participants section with avatars and add button
 class ParticipantsSection extends StatelessWidget {
@@ -23,8 +24,8 @@ class ParticipantsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -37,8 +38,8 @@ class ParticipantsSection extends StatelessWidget {
         border: Border(
           bottom: BorderSide(
             color: theme.brightness == Brightness.light
-                ? const Color(0xFF1C1C1E).withOpacity(0.1)
-                : const Color(0xFF333333),
+                ? AppColors.lightInk.withOpacity(0.1)
+                : AppColors.darkBorder,
             width: 1,
           ),
         ),

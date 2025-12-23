@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/bill_item.dart';
 import '../../../cubit/cubit.dart';
+import '../../theme/app_theme.dart';
 
 /// Dialog for adding or editing items in scanner
 class ScannerItemDialog extends StatefulWidget {
@@ -96,8 +97,8 @@ class _ScannerItemDialogState extends State<ScannerItemDialog> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

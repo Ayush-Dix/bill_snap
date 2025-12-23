@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../models/models.dart';
+import '../../theme/app_theme.dart';
 
 /// Header section for the bill with title and total
 class BillHeader extends StatelessWidget {
@@ -12,8 +13,8 @@ class BillHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -47,7 +48,11 @@ class BillHeader extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             'Bill Total',
-            style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.brightness == Brightness.light
+                  ? AppColors.lightGray600
+                  : AppColors.darkGray600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(

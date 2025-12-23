@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../models/models.dart';
 import '../../widgets/user_summary_card.dart';
+import '../../theme/app_theme.dart';
 
 /// Summary section showing per-user breakdowns
 class SplitterSummarySection extends StatelessWidget {
@@ -52,8 +53,8 @@ class SplitterSummarySection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accentColor = theme.brightness == Brightness.light
-        ? const Color(0xFFFF6B35)
-        : const Color(0xFFFF8A5B);
+        ? AppColors.lightAccent
+        : AppColors.darkAccent;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
